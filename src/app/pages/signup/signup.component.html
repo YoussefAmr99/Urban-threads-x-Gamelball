@@ -1,0 +1,66 @@
+<div class="page page--narrow signup-page">
+  <div class="signup-header">
+    <div class="signup-header__logo">🧵</div>
+    <h1 class="signup-header__title">Join UrbanThreads</h1>
+    <p class="signup-header__subtitle">
+      Create your account to earn rewards on every purchase
+    </p>
+  </div>
+
+  <!-- Quick login for dev/testing -->
+  <div class="test-user-banner">
+    <span>🧪 Already have a test account?</span>
+    <button class="btn btn--secondary" (click)="continueAsTestUser()">
+      Continue as Test User →
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="form-group">
+      <label for="name">Full Name</label>
+      <input
+        id="name"
+        type="text"
+        [(ngModel)]="form.displayName"
+        placeholder="e.g. Alex Johnson"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input
+        id="email"
+        type="email"
+        [(ngModel)]="form.email"
+        placeholder="alex@example.com"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        [(ngModel)]="form.password"
+        placeholder="Create a password"
+      />
+    </div>
+
+    <button
+      class="btn btn--primary btn--full"
+      (click)="onSubmit()"
+      [disabled]="loading"
+    >
+      <span *ngIf="loading" class="spinner"></span>
+      <span>{{ loading ? "Creating account..." : "Create Account" }}</span>
+    </button>
+
+    <p class="signup-terms">
+      By signing up you agree to earn points, badges, and VIP status. 🏆
+    </p>
+  </div>
+</div>
+
+<div *ngIf="toast" class="toast" [ngClass]="'toast--' + toast.type">
+  {{ toast.message }}
+</div>

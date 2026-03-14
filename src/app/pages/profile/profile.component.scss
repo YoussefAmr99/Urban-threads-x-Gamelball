@@ -1,0 +1,208 @@
+.profile-page {
+  &__header {
+    margin-bottom: 2rem;
+
+    h1 {
+      font-size: 1.75rem;
+    }
+  }
+
+  &__subtitle {
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+  }
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-complete-badge {
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: var(--border-radius-sm);
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+// ─── Loyalty Panel ───
+.loyalty-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.loyalty-card {
+  padding: 1.5rem;
+}
+
+// Points display
+.points-display {
+  &__main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-bottom: 0.4rem;
+  }
+
+  &__number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--color-accent);
+    line-height: 1;
+  }
+
+  &__label {
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+
+  &__meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+
+  &__pending {
+    color: var(--color-warning);
+    font-weight: 600;
+  }
+}
+
+// Tier display
+.tier-display {
+  &__top {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  &__icon-fallback {
+    font-size: 2.5rem;
+  }
+
+  &__name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  &__sub {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+}
+
+.tier-progress {
+  &__labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 0.4rem;
+  }
+}
+
+// ─── Badges ───
+.badges-section {
+  margin-top: 0;
+}
+
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.badge-card {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: var(--border-radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg);
+  transition: border-color 0.2s;
+
+  &--achieved {
+    border-color: var(--color-success);
+    background: #f0fdf4;
+  }
+
+  &__icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  &__info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  &__name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--color-primary);
+  }
+
+  &__desc {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+  }
+
+  &__percent {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+  }
+
+  &__reward {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-success);
+  }
+}
+
+.loading-placeholder {
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+}

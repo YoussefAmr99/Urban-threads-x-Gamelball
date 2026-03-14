@@ -1,0 +1,246 @@
+<div class="page checkout-page">
+  <!-- ── ORDER CONFIRMATION SCREEN ── -->
+  <div *ngIf="orderPlaced" class="order-success card">
+    <div class="order-success__icon">🎉</div>
+    <h2 class="order-success__title">Order Placed!</h2>
+    <p class="order-success__id">
+      Order <strong>{{ orderId }}</strong>
+    </p>
+
+    <div class="order-success__stats">
+      <div class="order-success__stat">
+        <span class="order-success__stat-value">{{ pointsEarned }}</span>
+        <span class="order-success__stat-label">Points Earned</span>
+      </div>
+      <div class="order-success__divider"></div>
+      <div class="order-success__stat">
+        <span class="order-success__stat-value"
+          >${{ totalAfterRedemption | number: "1.2-2" }}</span
+        >
+        <span class="order-success__stat-label">Amount Paid</span>
+      </div>
+      <ng-container *ngIf="pointsToRedeem > 0">
+        <div class="order-success__divider"></div>
+        <div class="order-success__stat">
+          <span class="order-success__stat-value">{{ pointsToRedeem }}</span>
+          <span class="order-success__stat-label">Points Redeemed</span>
+        </div>
+      </ng-container>
+    </div>
+
+    <p class="order-success__message">
+      Your points have been updated in your Gameball account.
+    </p>
+
+    <div class="order-success__actions">
+      <button class="btn btn--primary" (click)="router.navigate(['/profile'])">
+        View My Points
+      </button>
+      <button class="btn btn--ghost" (click)="router.navigate(['/product'])">
+        Continue Shopping
+      </button>
+    </div>
+  </div>
+
+  <!-- ── CHECKOUT FLOW ── -->
+  <ng-container *ngIf="!orderPlaced">
+    <div class="checkout-page__header">
+      <h1>Checkout</h1>
+      <p class="checkout-page__subtitle">
+        Review your order and redeem your points
+      </p>
+    </div>
+
+    <div class="checkout-layout">
+      <!-- LEFT: Order Summary + Points Redemption -->
+      <div class="checkout-left">
+        <!-- Order Summary -->
+        <div class="card">
+          <p class="section-title">🛒 Order Summary</p>
+
+          <div class="cart-items">
+            <div class="cart-item" *ngFor="let item of cart">
+              <div class="cart-item__info">
+                <span class="cart-item__name">{{ item.title }}</span>
+                <span class="cart-item__qty">× {{ item.quantity }}</span>
+              </div>
+              <span class="cart-item__price">
+                ${{ item.price * item.quantity | number: "1.2-2" }}
+              </span>
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="order-totals">
+            <div class="order-totals__row">
+              <span>Subtotal</span>
+              <span>${{ subtotal | number: "1.2-2" }}</span>
+            </div>
+            <div
+              class="order-totals__row order-totals__row--discount"
+              *ngIf="pointsToRedeem > 0"
+            >
+              <span>Points Discount</span>
+              <span>− ${{ redemptionDiscount | number: "1.2-2" }}</span>
+            </div>
+            <div class="order-totals__row order-totals__row--total">
+              <span>Total</span>
+              <span>${{ totalAfterRedemption | number: "1.2-2" }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Points Redemption Box -->
+        <div class="card redemption-box">
+          <p class="section-title">⭐ Redeem Your Points</p>
+
+          <div *ngIf="loadingBalance" class="loading-placeholder">
+            Loading your points balance...
+          </div>
+
+          <ng-container *ngIf="!loadingBalance">
+            <!-- Has points -->
+            <ng-container *ngIf="balance && balance.avaliablePointsBalance > 0">
+              <div class="redemption-balance">
+                <div class="redemption-balance__info">
+                  <span class="redemption-balance__number">
+                    {{ balance.avaliablePointsBalance | number }}
+                  </span>
+                  <span class="redemption-balance__label"
+                    >available points</span
+                  >
+                </div>
+                <span class="redemption-balance__value">
+                  worth ${{ balance.avaliablePointsValue | number: "1.2-2" }}
+                </span>
+              </div>
+
+              <div class="redemption-slider">
+                <div class="redemption-slider__header">
+                  <label
+                    >Points to redeem:
+                    <strong>{{ pointsToRedeem }}</strong></label
+                  >
+                  <button
+                    *ngIf="pointsToRedeem > 0"
+                    class="btn btn--ghost redemption-slider__clear"
+                    (click)="clearRedemption()"
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <input
+                  type="range"
+                  class="redemption-slider__input"
+                  [min]="0"
+                  [max]="maxRedeemablePoints"
+                  [value]="pointsToRedeem"
+                  (input)="onPointsSliderChange($event)"
+                />
+
+                <div class="redemption-slider__labels">
+                  <span>0</span>
+                  <span>{{ maxRedeemablePoints | number }}</span>
+                </div>
+              </div>
+
+              <div class="redemption-summary" *ngIf="pointsToRedeem > 0">
+                <span
+                  >💸 You save
+                  <strong>${{ redemptionDiscount | number: "1.2-2" }}</strong>
+                  using {{ pointsToRedeem }} points</span
+                >
+              </div>
+            </ng-container>
+
+            <!-- No points -->
+            <div
+              *ngIf="!balance || balance.avaliablePointsBalance === 0"
+              class="empty-state"
+            >
+              <div class="empty-state__icon">🎯</div>
+              <p class="empty-state__title">
+                No points to redeem yet. Place an order to start earning!
+              </p>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- RIGHT: Order & Payment -->
+      <div class="checkout-right">
+        <div class="card order-card">
+          <p class="section-title">📦 Place Your Order</p>
+
+          <div class="order-summary-mini">
+            <div class="order-summary-mini__row">
+              <span>Items</span>
+              <span>{{ cart.length }}</span>
+            </div>
+            <div class="order-summary-mini__row">
+              <span>Subtotal</span>
+              <span>${{ subtotal | number: "1.2-2" }}</span>
+            </div>
+            <div class="order-summary-mini__row" *ngIf="pointsToRedeem > 0">
+              <span>Points Redeemed</span>
+              <span class="order-summary-mini__discount"
+                >− ${{ redemptionDiscount | number: "1.2-2" }}</span
+              >
+            </div>
+            <hr class="divider" />
+            <div class="order-summary-mini__row order-summary-mini__row--total">
+              <span>You Pay</span>
+              <span>${{ totalAfterRedemption | number: "1.2-2" }}</span>
+            </div>
+          </div>
+
+          <!-- Payment fields (mock UI) -->
+          <div class="form-group" style="margin-top: 1.5rem">
+            <label>Card Number</label>
+            <input type="text" value="•••• •••• •••• 4242" disabled />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Expiry</label>
+              <input type="text" value="12/28" disabled />
+            </div>
+            <div class="form-group">
+              <label>CVV</label>
+              <input type="text" value="•••" disabled />
+            </div>
+          </div>
+
+          <div class="order-points-note" *ngIf="!loadingBalance && balance">
+            🏆 You'll earn approx.
+            <strong>{{ totalAfterRedemption | number: "1.0-0" }} points</strong>
+            from this order
+          </div>
+
+          <button
+            class="btn btn--primary btn--full"
+            (click)="onPlaceOrder()"
+            [disabled]="loading"
+          >
+            <span *ngIf="loading" class="spinner"></span>
+            <span>{{
+              loading
+                ? "Processing..."
+                : "Place Order — $" + (totalAfterRedemption | number: "1.2-2")
+            }}</span>
+          </button>
+
+          <p class="order-card__note">
+            🔒 This is a demo. No real payment is processed.
+          </p>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<div *ngIf="toast" class="toast" [ngClass]="'toast--' + toast.type">
+  {{ toast.message }}
+</div>

@@ -1,0 +1,141 @@
+<div class="page product-page">
+  <!-- Product Detail -->
+  <div class="product-layout">
+    <div class="product-image card">
+      <div class="product-image__emoji">{{ product.image }}</div>
+    </div>
+
+    <div class="product-info">
+      <p class="product-info__brand">UrbanThreads Collection</p>
+      <h1 class="product-info__name">{{ product.name }}</h1>
+
+      <div class="product-info__rating">
+        <span class="stars">
+          <span
+            *ngFor="let s of starsArray"
+            class="star"
+            [class.star--filled]="s <= product.rating"
+            >★</span
+          >
+        </span>
+        <span class="product-info__rating-count"
+          >{{ product.rating }} ({{ product.reviewCount }} reviews)</span
+        >
+      </div>
+
+      <div class="product-info__price">${{ product.price }}</div>
+      <p class="product-info__desc">{{ product.description }}</p>
+
+      <button class="btn btn--primary" (click)="router.navigate(['/checkout'])">
+        🛒 Add to Cart & Checkout
+      </button>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Review Form -->
+  <div class="reviews-section">
+    <div class="review-form card">
+      <p class="section-title">✍️ Write a Review</p>
+
+      <div *ngIf="reviewSubmitted" class="review-success">
+        ✅ Thanks for your review! Points have been added to your account.
+        <button
+          class="btn btn--ghost"
+          style="margin-top: 0.75rem"
+          (click)="reviewSubmitted = false"
+        >
+          Write another
+        </button>
+      </div>
+
+      <ng-container *ngIf="!reviewSubmitted">
+        <!-- Star Rating -->
+        <div class="form-group">
+          <label>Your Rating</label>
+          <div class="star-picker">
+            <span
+              *ngFor="let s of starsArray"
+              class="star-picker__star"
+              [class.star-picker__star--active]="
+                s <= (hoveredStar || reviewForm.rating)
+              "
+              (mouseenter)="hoveredStar = s"
+              (mouseleave)="hoveredStar = 0"
+              (click)="setRating(s)"
+              >★</span
+            >
+          </div>
+        </div>
+
+        <!-- Review Text -->
+        <div class="form-group">
+          <label for="review">Your Review</label>
+          <textarea
+            id="review"
+            [(ngModel)]="reviewForm.text"
+            placeholder="What did you think of this product?"
+            rows="4"
+          ></textarea>
+        </div>
+
+        <!-- Image toggle — key for has_image metadata -->
+        <div class="form-group">
+          <label class="image-toggle">
+            <input
+              type="checkbox"
+              [checked]="reviewForm.hasImage"
+              (change)="onImageToggle($event)"
+            />
+            <span class="image-toggle__text">
+              📸 Include a photo with my review
+              <span class="image-toggle__bonus">(earns bonus points!)</span>
+            </span>
+          </label>
+          <div *ngIf="reviewForm.hasImage" class="image-preview">
+            📎 {{ reviewForm.imageFileName }} attached
+          </div>
+        </div>
+
+        <button
+          class="btn btn--primary btn--full"
+          (click)="onSubmitReview()"
+          [disabled]="loading"
+        >
+          <span *ngIf="loading" class="spinner"></span>
+          <span>{{ loading ? "Submitting..." : "Submit Review" }}</span>
+        </button>
+      </ng-container>
+    </div>
+
+    <!-- Existing reviews -->
+    <div class="review-list">
+      <p class="section-title">💬 Customer Reviews</p>
+      <div class="review-item card" *ngFor="let review of reviews">
+        <div class="review-item__header">
+          <div class="review-item__author">{{ review.author }}</div>
+          <div class="review-item__meta">
+            <span class="stars">
+              <span
+                *ngFor="let s of starsArray"
+                class="star"
+                [class.star--filled]="s <= review.rating"
+                >★</span
+              >
+            </span>
+            <span class="review-item__date">{{ review.date }}</span>
+            <span *ngIf="review.hasImage" class="badge badge--success"
+              >📸 Photo</span
+            >
+          </div>
+        </div>
+        <p class="review-item__text">{{ review.text }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="toast" class="toast" [ngClass]="'toast--' + toast.type">
+  {{ toast.message }}
+</div>
