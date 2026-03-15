@@ -180,10 +180,7 @@ export class ProfileComponent implements OnInit {
           });
 
           this.loadingProfile = false;
-          this.showToast(
-            'Profile saved! Points may have been awarded 🎉',
-            'success',
-          );
+          this.showToast('Profile saved! 🎉', 'success');
           setTimeout(() => this.loadLoyaltyData(), 1000);
         },
         error: (err) => {

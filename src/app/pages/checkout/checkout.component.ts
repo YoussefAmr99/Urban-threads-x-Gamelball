@@ -87,7 +87,7 @@ export class CheckoutComponent implements OnInit {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 3 STEP 1b: Clear redemption — release held points
+  // Clear redemption — release held points
   // Called when customer clears the redemption slider
   // ─────────────────────────────────────────────
   clearRedemption(): void {
@@ -95,9 +95,7 @@ export class CheckoutComponent implements OnInit {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 3 STEP 2: Place order
-  // If holdReference exists → pass in redemption object
-  // If no holdReference → earning only, no redemption
+  // Place order
   // ─────────────────────────────────────────────
   onPlaceOrder(): void {
     const user = this.session.getUser()!;

@@ -28,7 +28,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 1: Register / update a customer
+  // Register / update a customer
   // POST /integrations/customers
   // ─────────────────────────────────────────────
   registerCustomer(payload: CustomerRegistration): Observable<any> {
@@ -38,7 +38,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 2: Send a named event with metadata
+  // Send a named event with metadata
   // POST /integrations/events
   // ─────────────────────────────────────────────
   sendEvent(payload: EventPayload): Observable<any> {
@@ -48,11 +48,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 3 STEP 1: Hold points before redemption
-  // POST /api/v4.0/integrations/transaction/hold
-  // Temporarily freezes points to prevent double-spending
-  // Returns holdReference used in the order call
-  // Note: OTP field only needed if account has OTP enabled
+  // Redeem points for redemption section
   // ─────────────────────────────────────────────
   redeemPoints(
     customerId: string,
@@ -73,19 +69,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 3 STEP 1b: Release held points
-  // DELETE /api/v3.0/integrations/transaction/hold/{holdReference}
-  // Called when customer clears redemption or cancels checkout
-  // ─────────────────────────────────────────────
-  releasePoints(holdReference: string): Observable<any> {
-    return this.http.delete(
-      `https://api.gameball.co/api/v3.0/integrations/transaction/hold/${holdReference}`,
-      { headers: this.getHeaders() },
-    );
-  }
-
-  // ─────────────────────────────────────────────
-  // TASK 3 STEP 2: Place an order (earn + redeem)
+  // Place an order (earn + redeem)
   // POST /integrations/orders
   // ─────────────────────────────────────────────
   placeOrder(payload: any): Observable<any> {
@@ -95,7 +79,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 4: Get customer points balance
+  // Get customer points balance
   // GET /integrations/customers/{customerId}/balance
   // ─────────────────────────────────────────────
   getCustomerBalance(customerId: string): Observable<BalanceResponse> {
@@ -106,7 +90,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 4: Get customer VIP tier
+  // Get customer VIP tier
   // GET /integrations/customers/{customerId}/tier-progress
   // ─────────────────────────────────────────────
   getCustomerTier(customerId: string): Observable<TierResponse> {
@@ -117,7 +101,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 4: Get badge progress + campaign config in one call
+  // Get badge progress + campaign config in one call
   // GET /integrations/customers/{customerId}/reward-campaigns-progress
   // Note: singular "reward" not "rewards" — typo in earlier attempts
   // Response includes full campaign config + per-customer progress
