@@ -22,7 +22,6 @@ interface CartItem {
   styleUrls: ['./checkout.component.scss'],
 })
 export class CheckoutComponent implements OnInit {
-  // ─── Mocked cart — no DB needed ───
   cart: CartItem[] = [
     {
       productId: 'PROD-001',
@@ -40,13 +39,11 @@ export class CheckoutComponent implements OnInit {
     },
   ];
 
-  // ─── Points redemption state ───
   balance: BalanceResponse | null = null;
   pointsToRedeem = 0;
   maxRedeemablePoints = 0;
   loadingBalance = true;
 
-  // ─── Order state ───
   loading = false;
   orderPlaced = false;
   orderId = '';
@@ -69,9 +66,8 @@ export class CheckoutComponent implements OnInit {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 3b: Load customer balance
-  // Shown BEFORE checkout so customer can decide
-  // how many points to redeem
+  // TASK 3b: Load customer balance before checkout
+  // so customer can decide how many points to redeem
   // ─────────────────────────────────────────────
   loadBalance(): void {
     const customerId = this.session.getUser()!.customerId;
@@ -80,8 +76,6 @@ export class CheckoutComponent implements OnInit {
     this.gameball.getCustomerBalance(customerId).subscribe({
       next: (balance) => {
         this.balance = balance;
-        // Cap redeemable points at available balance
-        // and also cap at order total value (can't redeem more than you owe)
         this.maxRedeemablePoints = Math.min(
           balance.avaliablePointsBalance,
           this.pointsEquivalentOfTotal,
@@ -98,22 +92,22 @@ export class CheckoutComponent implements OnInit {
 
   // ─────────────────────────────────────────────
   // TASK 3: Place order
-  // If pointsToRedeem > 0 → earning + redemption
-  // If pointsToRedeem === 0 → earning only
-  // Both handled by POST /orders in one call
+  // Earning: always happens via POST /orders
+  // Redemption: pass redeemedPoints in the payload
+  // Note: The full production redemption flow requires
+  // Hold → OTP → Confirm before the order call.
+  // For this demo, redeemedPoints is passed directly.
   // ─────────────────────────────────────────────
   onPlaceOrder(): void {
     const user = this.session.getUser()!;
     this.loading = true;
 
-    // Generate a unique order ID
     const orderId = `ORD-${Date.now()}`;
-    const orderDate = new Date().toISOString();
 
     const payload: any = {
       customerId: user.customerId,
       orderId,
-      orderDate,
+      orderDate: new Date().toISOString(),
       totalPrice: this.subtotal,
       totalPaid: this.totalAfterRedemption,
       totalDiscount: this.redemptionDiscount,
@@ -126,18 +120,16 @@ export class CheckoutComponent implements OnInit {
       })),
     };
 
-    // Only include redeemedPoints if customer actually redeems
+    // Only include redeemedPoints if customer actually chose to redeem
     if (this.pointsToRedeem > 0) {
       payload.redeemedPoints = this.pointsToRedeem;
     }
 
     this.gameball.placeOrder(payload).subscribe({
-      next: (res) => {
+      next: () => {
         this.loading = false;
         this.orderPlaced = true;
         this.orderId = orderId;
-        // Estimate earned points — in reality Gameball returns this
-        // based on configured earning rules in the dashboard
         this.pointsEarned = Math.floor(this.totalAfterRedemption);
       },
       error: (err) => {
@@ -157,7 +149,6 @@ export class CheckoutComponent implements OnInit {
 
   get redemptionDiscount(): number {
     if (!this.balance || this.pointsToRedeem === 0) return 0;
-    // Calculate monetary value of redeemed points proportionally
     const pointsValue = this.balance.avaliablePointsValue || 0;
     const totalPoints = this.balance.avaliablePointsBalance || 1;
     return parseFloat(
@@ -171,8 +162,6 @@ export class CheckoutComponent implements OnInit {
     );
   }
 
-  // How many points equal the full order total
-  // (used to cap max redeemable)
   get pointsEquivalentOfTotal(): number {
     if (!this.balance || !this.balance.avaliablePointsValue) return 0;
     const totalPoints = this.balance.avaliablePointsBalance || 1;

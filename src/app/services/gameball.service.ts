@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, forkJoin, of } from 'rxjs';
+import { Observable, of, forkJoin } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import {
@@ -28,7 +28,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 1: Register / update a customer in Gameball
+  // TASK 1: Register / update a customer
   // POST /integrations/customers
   // ─────────────────────────────────────────────
   registerCustomer(payload: CustomerRegistration): Observable<any> {
@@ -48,24 +48,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 3 STEP 1: Hold points before redemption
-  // POST /v3.0/integrations/transaction/hold
-  // Note: transactions API uses v3.0, requires playerUniqueId
-  // ─────────────────────────────────────────────
-  holdPoints(customerId: string, pointsToHold: number): Observable<any> {
-    return this.http.post(
-      `https://api.gameball.co/api/v3.0/integrations/transaction/hold`,
-      {
-        playerUniqueId: customerId,
-        amount: pointsToHold,
-        transactionTime: new Date().toISOString(),
-      },
-      { headers: this.getHeaders() },
-    );
-  }
-
-  // ─────────────────────────────────────────────
-  // TASK 3 STEP 2: Place an order (earn + optionally redeem)
+  // TASK 3 STEP 2: Place an order (earn + redeem)
   // POST /integrations/orders
   // ─────────────────────────────────────────────
   placeOrder(payload: any): Observable<any> {
@@ -75,7 +58,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 3b + TASK 4: Get customer points balance
+  // TASK 4: Get customer points balance
   // GET /integrations/customers/{customerId}/balance
   // ─────────────────────────────────────────────
   getCustomerBalance(customerId: string): Observable<BalanceResponse> {
@@ -86,7 +69,7 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 4: Get customer VIP tier and progress
+  // TASK 4: Get customer VIP tier
   // GET /integrations/customers/{customerId}/tier-progress
   // ─────────────────────────────────────────────
   getCustomerTier(customerId: string): Observable<TierResponse> {
@@ -97,70 +80,112 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 4: Get campaign definitions (name, icon, rewards)
-  // GET /integrations/configurations/reward-campaigns
-  // Filtered to only visible campaigns with a name
+  // TASK 4: Get badge progress + campaign config in one call
+  // GET /integrations/customers/{customerId}/reward-campaigns-progress
+  // Note: singular "reward" not "rewards" — typo in earlier attempts
+  // Response includes full campaign config + per-customer progress
+  // Falls back to definitions-only if customer has no activity yet
   // ─────────────────────────────────────────────
-  private getCampaignDefinitions(
+  getBadgesProgress(customerId: string): Observable<BadgeProgress[]> {
+    return forkJoin({
+      definitions: this.getCampaignDefinitionsFallback(customerId).pipe(
+        catchError(() => of([] as BadgeProgress[])),
+      ),
+      progress: this.http
+        .get<
+          CampaignProgress[]
+        >(`${this.baseUrl}/integrations/customers/${customerId}/reward-campaigns-progress`, { headers: this.getHeaders() })
+        .pipe(catchError(() => of([] as CampaignProgress[]))),
+    }).pipe(
+      map(({ definitions, progress }) => {
+        // Build a map of campaign IDs that have progress
+        const progressMap = new Map(
+          progress.map((p) => [p.rewardsCampaignId, p]),
+        );
+
+        // Start with all campaigns that have progress data
+        // Show these regardless of visibility — customer already has activity on them
+        const campaignsWithProgress: BadgeProgress[] = progress
+          .filter((p) => p.rewardCampaignConfiguration?.name?.trim() !== '')
+          .map(
+            (p) =>
+              ({
+                id: p.rewardsCampaignId,
+                name:
+                  p.rewardCampaignConfiguration?.name ?? p.rewardsCampaignName,
+                description: p.rewardCampaignConfiguration?.description ?? '',
+                icon: p.rewardCampaignConfiguration?.icon ?? null,
+                type: p.rewardCampaignConfiguration?.type ?? '',
+                visibility: p.rewardCampaignConfiguration?.visibility ?? '',
+                rewards: p.rewardCampaignConfiguration?.rewards ?? [],
+                completionPercentage: p.completionPercentage,
+                achievedCount: p.achievedCount,
+                isAchieved: p.achievedCount > 0,
+                canAchieve: p.canAchieve,
+              }) as BadgeProgress,
+          );
+
+        // Add visible campaigns that have NO progress yet (0% — not started)
+        const campaignsWithoutProgress: BadgeProgress[] = definitions.filter(
+          (d) => !progressMap.has(d.id),
+        ); // only those not already in progress
+
+        // Merge: progress campaigns first, then unstarted visible ones
+        const allCampaigns = [
+          ...campaignsWithProgress,
+          ...campaignsWithoutProgress,
+        ];
+
+        // Sort: achieved first, then in-progress, then not started
+        return allCampaigns.sort((a, b) => {
+          if (a.isAchieved && !b.isAchieved) return -1;
+          if (!a.isAchieved && b.isAchieved) return 1;
+          return b.completionPercentage - a.completionPercentage;
+        });
+      }),
+    );
+  }
+
+  // Fallback: show campaign definitions with 0% progress
+  // Used when customer has no activity on any campaign yet
+  private getCampaignDefinitionsFallback(
     customerId: string,
-  ): Observable<CampaignDefinition[]> {
+  ): Observable<BadgeProgress[]> {
     return this.http
       .get<
         CampaignDefinition[]
       >(`${this.baseUrl}/integrations/configurations/reward-campaigns?customerId=${customerId}`, { headers: this.getHeaders() })
       .pipe(
-        // Filter here on CampaignDefinition where visibility field exists
         map((campaigns: CampaignDefinition[]) =>
-          campaigns.filter(
-            (c) => c.name?.trim() !== '' && c.visibility !== 'Not Visible',
-          ),
+          campaigns
+            .filter(
+              (c) => c.name?.trim() !== '' && c.visibility !== 'Not Visible',
+            )
+            .map(
+              (c) =>
+                ({
+                  id: c.id,
+                  name: c.name,
+                  description: c.description ?? '',
+                  icon: c.icon,
+                  type: c.type,
+                  visibility: c.visibility,
+                  rewards: c.rewards,
+                  completionPercentage: 0,
+                  achievedCount: 0,
+                  isAchieved: false,
+                  canAchieve: true,
+                }) as BadgeProgress,
+            ),
         ),
+        catchError(() => of([] as BadgeProgress[])),
       );
   }
-
-  // ─────────────────────────────────────────────
-  // TASK 4: Get per-customer campaign progress
-  // GET /integrations/customers/{customerId}/rewards-campaigns-progress
-  // Returns completionPercentage and achievedCount per campaign
-  // ─────────────────────────────────────────────
-  private getCampaignProgress(
-    customerId: string,
-  ): Observable<CampaignProgress[]> {
-    return this.http.get<CampaignProgress[]>(
-      `${this.baseUrl}/integrations/customers/${customerId}/rewards-campaigns-progress`,
+  // Get Customer Profile (for profile completion event)
+  getCustomerProfile(customerId: string): Observable<any> {
+    return this.http.get(
+      `${this.baseUrl}/integrations/customers/${customerId}/details`,
       { headers: this.getHeaders() },
-    );
-  }
-
-  // ─────────────────────────────────────────────
-  // TASK 4: Merge definitions + progress into BadgeProgress[]
-  // Calls both endpoints in parallel, merges by campaign ID
-  // If progress endpoint 404s (new customer) → defaults to 0%
-  // ─────────────────────────────────────────────
-  getBadgesProgress(customerId: string): Observable<BadgeProgress[]> {
-    return forkJoin({
-      definitions: this.getCampaignDefinitions(customerId),
-      progress: this.getCampaignProgress(customerId).pipe(
-        catchError(() => of([] as CampaignProgress[])),
-      ),
-    }).pipe(
-      map(({ definitions, progress }) =>
-        definitions.map((def) => {
-          const prog = progress.find((p) => p.rewardsCampaignId === def.id);
-          const completionPercentage = prog?.completionPercentage ?? 0;
-          return {
-            id: def.id,
-            name: def.name,
-            description: def.description,
-            icon: def.icon,
-            type: def.type,
-            rewards: def.rewards,
-            completionPercentage,
-            achievedCount: prog?.achievedCount ?? 0,
-            isAchieved: completionPercentage >= 100,
-          } as BadgeProgress;
-        }),
-      ),
     );
   }
 }

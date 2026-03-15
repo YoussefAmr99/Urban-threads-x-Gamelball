@@ -120,7 +120,7 @@ export class ProductComponent implements OnInit {
             product_id: this.product.id,
             product_name: this.product.name,
             rating: this.reviewForm.rating,
-            has_image: this.reviewForm.hasImage, // ← key distinction
+            has_image: this.reviewForm.hasImage,
             review_text: this.reviewForm.text,
           },
         },
@@ -150,8 +150,8 @@ export class ProductComponent implements OnInit {
           };
 
           const msg = this.reviewForm.hasImage
-            ? 'Review submitted with photo! Extra points awarded 📸'
-            : 'Review submitted! Points awarded 🎉';
+            ? 'Review submitted with photo! 📸'
+            : 'Review submitted! 🎉';
           this.showToast(msg, 'success');
         },
         error: (err) => {

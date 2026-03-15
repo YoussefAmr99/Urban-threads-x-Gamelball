@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, switchMap } from 'rxjs/operators';
 import { GameballService } from '../../services/gameball.service';
 import { SessionService } from '../../services/session.service';
 import {
@@ -26,7 +26,6 @@ export class ProfileComponent implements OnInit {
     dateOfBirth: '',
   };
 
-  // Loyalty data from Gameball
   balance: BalanceResponse | null = null;
   tier: TierResponse | null = null;
   badges: BadgeProgress[] = [];
@@ -50,8 +49,10 @@ export class ProfileComponent implements OnInit {
   }
 
   // ─────────────────────────────────────────────
-  // Load all loyalty data in parallel
-  // Uses forkJoin to fire 3 requests simultaneously
+  // TASK 4: Load all loyalty data in parallel
+  // forkJoin fires all 3 requests simultaneously
+  // catchError on each makes them independent —
+  // one failure won't cancel the others
   // ─────────────────────────────────────────────
   loadLoyaltyData(): void {
     const customerId = this.session.getUser()!.customerId;
@@ -71,9 +72,8 @@ export class ProfileComponent implements OnInit {
         }),
       ),
       badges: this.gameball.getBadgesProgress(customerId).pipe(
-        // 404 = no campaigns configured yet — treat as empty array, not an error
         catchError((err) => {
-          console.warn('Badges not configured yet:', err);
+          console.warn('Badges error:', err);
           return of([]);
         }),
       ),
@@ -87,15 +87,17 @@ export class ProfileComponent implements OnInit {
       error: (err) => {
         console.error('Failed to load loyalty data:', err);
         this.loadingLoyalty = false;
-        this.showToast('Could not load loyalty data. Check API keys.', 'error');
+        this.showToast('Could not load loyalty data.', 'error');
       },
     });
   }
 
   // ─────────────────────────────────────────────
-  // Send profile_completed event
-  // Also updates Gameball customer record with
-  // the additional profile fields
+  // TASK 2a: Save profile + fire profile_completed event
+  // Uses switchMap to chain two API calls cleanly —
+  // first update the customer record, then fire the event.
+  // switchMap flattens the inner observable so we avoid
+  // nested .subscribe() calls (anti-pattern in RxJS)
   // ─────────────────────────────────────────────
   onSaveProfile(): void {
     if (!this.form.mobile || !this.form.gender || !this.form.dateOfBirth) {
@@ -106,7 +108,7 @@ export class ProfileComponent implements OnInit {
     const user = this.session.getUser()!;
     this.loadingProfile = true;
 
-    // Step 1: Update Gameball customer record with new attributes
+    // Step 1: Update customer attributes in Gameball
     this.gameball
       .registerCustomer({
         customerId: user.customerId,
@@ -118,51 +120,42 @@ export class ProfileComponent implements OnInit {
           dateOfBirth: new Date(this.form.dateOfBirth).toISOString(),
         },
       })
+      .pipe(
+        // Step 2: Chain the event call using switchMap — no nesting needed
+        switchMap(() =>
+          this.gameball.sendEvent({
+            customerId: user.customerId,
+            events: {
+              profile_completed: {
+                email: user.email,
+                phone: this.form.mobile,
+                name: user.displayName,
+                gender: this.form.gender,
+                date_of_birth: this.form.dateOfBirth,
+              },
+            },
+          }),
+        ),
+      )
       .subscribe({
         next: () => {
-          // Step 2: Fire the profile_completed event with metadata
-          this.gameball
-            .sendEvent({
-              customerId: user.customerId,
-              events: {
-                profile_completed: {
-                  email: user.email,
-                  phone: this.form.mobile,
-                  name: user.displayName,
-                  gender: this.form.gender,
-                  date_of_birth: this.form.dateOfBirth,
-                },
-              },
-            })
-            .subscribe({
-              next: () => {
-                // Update local session
-                this.session.updateUser({
-                  mobile: this.form.mobile,
-                  gender: this.form.gender as 'M' | 'F',
-                  dateOfBirth: this.form.dateOfBirth,
-                  profileCompleted: true,
-                });
+          this.session.updateUser({
+            mobile: this.form.mobile,
+            gender: this.form.gender as 'M' | 'F',
+            dateOfBirth: this.form.dateOfBirth,
+            profileCompleted: true,
+          });
 
-                this.loadingProfile = false;
-                this.showToast(
-                  'Profile saved! Points may have been awarded 🎉',
-                  'success',
-                );
-
-                // Refresh loyalty data to reflect any new points
-                setTimeout(() => this.loadLoyaltyData(), 1000);
-              },
-              error: (err) => {
-                this.loadingProfile = false;
-                console.error('Event error:', err);
-                this.showToast('Profile saved but event failed.', 'error');
-              },
-            });
+          this.loadingProfile = false;
+          this.showToast(
+            'Profile saved! Points may have been awarded 🎉',
+            'success',
+          );
+          setTimeout(() => this.loadLoyaltyData(), 1000);
         },
         error: (err) => {
           this.loadingProfile = false;
-          console.error('Customer update error:', err);
+          console.error('Profile save error:', err);
           this.showToast('Failed to save profile.', 'error');
         },
       });
@@ -171,8 +164,8 @@ export class ProfileComponent implements OnInit {
   get tierProgressPercent(): number {
     if (!this.tier) return 0;
     const progress = this.tier.progress;
-    const threshold = this.tier.next?.minProgress;
-    if (!threshold) return 100;
+    const threshold = this.tier.next?.minPorgress; // Gameball API typo
+    if (!threshold || threshold === 0) return 0;
     return Math.min(100, Math.round((progress / threshold) * 100));
   }
 

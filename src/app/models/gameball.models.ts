@@ -63,7 +63,7 @@ export interface TierState {
   name: string;
   icon?: string;
   order: number;
-  minProgress: number;
+  minPorgress: number;
 }
 
 export interface TierResponse {
@@ -78,7 +78,7 @@ export interface BadgeReward {
   couponReward: string | null;
 }
 
-// From /configurations/reward-campaigns
+// From /configurations/reward-campaigns (definitions only)
 export interface CampaignDefinition {
   id: number;
   name: string;
@@ -93,25 +93,46 @@ export interface CampaignDefinition {
   rewards: BadgeReward[];
 }
 
-// From /customers/{id}/rewards-campaigns-progress
+// Nested campaign config inside progress response
+export interface CampaignConfig {
+  id: number;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  type: string;
+  visibility: string;
+  isRepeatable: boolean;
+  maxAchievement: number;
+  rewards: BadgeReward[];
+}
+
+// From /customers/{id}/reward-campaigns-progress (singular reward)
 export interface CampaignProgress {
   rewardsCampaignId: number;
   rewardsCampaignName: string;
   completionPercentage: number;
   achievedCount: number;
+  isUnlocked: boolean;
+  canAchieve: boolean;
+  highScoreAmount: number | null;
+  currentStreak: number | null;
+  highestStreak: number | null;
+  rewardCampaignConfiguration: CampaignConfig;
 }
 
-// Merged model used in the UI
+// UI model used in the badges grid
 export interface BadgeProgress {
   id: number;
   name: string;
   description: string;
   icon: string | null;
   type: string;
+  visibility: string;
   rewards: BadgeReward[];
   completionPercentage: number;
   achievedCount: number;
   isAchieved: boolean;
+  canAchieve: boolean;
 }
 
 // ─────────────────────────────────────────────

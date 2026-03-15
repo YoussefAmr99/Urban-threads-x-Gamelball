@@ -1,5 +1,5 @@
 <div class="page profile-page">
-  <div class="profile-page__header">
+  <div *ngIf="!session.user()?.profileCompleted" class="profile-page__header">
     <h1>My Profile</h1>
     <p class="profile-page__subtitle">
       Complete your profile to earn bonus points
@@ -7,7 +7,7 @@
   </div>
 
   <div class="profile-layout">
-    <!-- LEFT: Profile form (Task 2a) -->
+    <!-- LEFT: Profile form -->
     <div class="profile-form card">
       <p class="section-title">👤 Profile Details</p>
 
@@ -19,29 +19,40 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
-          <label>Full Name</label>
-          <input type="text" [value]="session.user()?.displayName" disabled />
+        <div class="form-field">
+          <label class="form-label">Full Name</label>
+          <input
+            class="form-input"
+            type="text"
+            [value]="session.user()?.displayName"
+            disabled
+          />
         </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" [value]="session.user()?.email" disabled />
+        <div class="form-field">
+          <label class="form-label">Email</label>
+          <input
+            class="form-input"
+            type="email"
+            [value]="session.user()?.email"
+            disabled
+          />
         </div>
       </div>
 
       <div class="form-row">
-        <div class="form-group">
-          <label for="mobile">Mobile Number</label>
+        <div class="form-field">
+          <label class="form-label" for="mobile">Mobile Number</label>
           <input
+            class="form-input"
             id="mobile"
             type="tel"
             [(ngModel)]="form.mobile"
             placeholder="+20 100 000 0000"
           />
         </div>
-        <div class="form-group">
-          <label for="gender">Gender</label>
-          <select id="gender" [(ngModel)]="form.gender">
+        <div class="form-field">
+          <label class="form-label" for="gender">Gender</label>
+          <select class="form-input" id="gender" [(ngModel)]="form.gender">
             <option value="">Select gender</option>
             <option value="M">Male</option>
             <option value="F">Female</option>
@@ -49,9 +60,14 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="dob">Date of Birth</label>
-        <input id="dob" type="date" [(ngModel)]="form.dateOfBirth" />
+      <div class="form-field">
+        <label class="form-label" for="dob">Date of Birth</label>
+        <input
+          class="form-input"
+          id="dob"
+          type="date"
+          [(ngModel)]="form.dateOfBirth"
+        />
       </div>
 
       <button
@@ -130,7 +146,7 @@
             </div>
             <div class="tier-progress__labels">
               <span>{{ tier.progress }}</span>
-              <span>{{ tier.next.minProgress }}</span>
+              <span>{{ tier.next.minPorgress }}</span>
             </div>
           </div>
         </div>
@@ -158,18 +174,41 @@
     </div>
 
     <div *ngIf="!loadingLoyalty && badges.length > 0" class="badges-grid">
-      <div *ngFor="let badge of badges" class="badge-card">
+      <div
+        *ngFor="let badge of badges"
+        class="badge-card"
+        [class.badge-card--achieved]="badge.isAchieved"
+      >
         <div class="badge-card__icon">
           <img *ngIf="badge.icon" [src]="badge.icon" [alt]="badge.name" />
-          <span *ngIf="!badge.icon">🎯</span>
+          <span *ngIf="!badge.icon">{{ badge.isAchieved ? "🏅" : "🎯" }}</span>
         </div>
         <div class="badge-card__info">
           <div class="badge-card__name">{{ badge.name }}</div>
           <div class="badge-card__desc" *ngIf="badge.description">
             {{ badge.description }}
           </div>
-          <div class="badge-card__meta">
-            <span class="badge badge--neutral">{{ badge.type }}</span>
+
+          <!-- Progress bar -->
+          <div
+            class="progress-bar"
+            [class.progress-bar--success]="badge.isAchieved"
+            *ngIf="!badge.isAchieved"
+          >
+            <div
+              class="progress-bar__fill"
+              [style.width.%]="badge.completionPercentage"
+            ></div>
+          </div>
+
+          <!-- Status -->
+          <div class="badge-card__footer">
+            <span *ngIf="badge.isAchieved" class="badge badge--success"
+              >✓ Achieved</span
+            >
+            <span *ngIf="!badge.isAchieved" class="badge-card__percent">
+              {{ badge.completionPercentage }}% complete
+            </span>
             <span
               *ngIf="
                 badge.rewards.length > 0 && badge.rewards[0].walletReward > 0

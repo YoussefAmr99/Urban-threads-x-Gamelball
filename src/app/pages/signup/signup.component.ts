@@ -6,9 +6,9 @@ import { GameballService } from '../../services/gameball.service';
 import { SessionService } from '../../services/session.service';
 
 const TEST_USER = {
-  customerId: 'ut_y',
-  displayName: 'Alex Johnson',
-  email: 'alex@urbanthreads.com',
+  customerId: 'Ut_finaltest_gmail_com',
+  displayName: 'finalTest',
+  email: 'finaltest@gmail.com',
   profileCompleted: true,
 };
 
