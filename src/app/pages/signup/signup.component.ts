@@ -7,9 +7,9 @@ import { SessionService } from '../../services/session.service';
 
 // ─── Hardcode your test user here so you never have to re-sign up ───
 const TEST_USER = {
-  customerId: 'ut_y', // ← your existing Gameball customer ID
-  displayName: 'Alex Johnson',
-  email: 'alex@urbanthreads.com',
+  customerId: 'Ut_test_urbanthreads_com', // ← your existing Gameball customer ID
+  displayName: 'Test Account',
+  email: 'test@urbanthreads.com',
   profileCompleted: true,
 };
 
