@@ -65,10 +65,6 @@ export class CheckoutComponent implements OnInit {
     this.loadBalance();
   }
 
-  // ─────────────────────────────────────────────
-  // TASK 3b: Load customer balance before checkout
-  // so customer can decide how many points to redeem
-  // ─────────────────────────────────────────────
   loadBalance(): void {
     const customerId = this.session.getUser()!.customerId;
     this.loadingBalance = true;
@@ -91,53 +87,73 @@ export class CheckoutComponent implements OnInit {
   }
 
   // ─────────────────────────────────────────────
-  // TASK 3: Place order
-  // Earning: always happens via POST /orders
-  // Redemption: pass redeemedPoints in the payload
-  // Note: The full production redemption flow requires
-  // Hold → OTP → Confirm before the order call.
-  // For this demo, redeemedPoints is passed directly.
+  // TASK 3 STEP 1b: Clear redemption — release held points
+  // Called when customer clears the redemption slider
+  // ─────────────────────────────────────────────
+  clearRedemption(): void {
+    this.pointsToRedeem = 0;
+  }
+
+  // ─────────────────────────────────────────────
+  // TASK 3 STEP 2: Place order
+  // If holdReference exists → pass in redemption object
+  // If no holdReference → earning only, no redemption
   // ─────────────────────────────────────────────
   onPlaceOrder(): void {
     const user = this.session.getUser()!;
     this.loading = true;
-
     const orderId = `ORD-${Date.now()}`;
 
-    const payload: any = {
-      customerId: user.customerId,
-      orderId,
-      orderDate: new Date().toISOString(),
-      totalPrice: this.subtotal,
-      totalPaid: this.totalAfterRedemption,
-      totalDiscount: this.redemptionDiscount,
-      lineItems: this.cart.map((item) => ({
-        productId: item.productId,
-        title: item.title,
-        quantity: item.quantity,
-        price: item.price,
-        sku: item.sku,
-      })),
+    const placeOrder = () => {
+      const payload: any = {
+        customerId: user.customerId,
+        orderId,
+        orderDate: new Date().toISOString(),
+        totalPrice: this.subtotal,
+        totalPaid: this.totalAfterRedemption,
+        totalDiscount: this.redemptionDiscount,
+        lineItems: this.cart.map((item) => ({
+          productId: item.productId,
+          title: item.title,
+          quantity: item.quantity,
+          price: item.price,
+          sku: item.sku,
+        })),
+      };
+
+      this.gameball.placeOrder(payload).subscribe({
+        next: () => {
+          this.loading = false;
+          this.orderPlaced = true;
+          this.orderId = orderId;
+          this.pointsEarned = Math.floor(this.totalAfterRedemption);
+        },
+        error: (err) => {
+          this.loading = false;
+          console.error('Order error:', err);
+          this.showToast('Order failed. Please try again.', 'error');
+        },
+      });
     };
 
-    // Only include redeemedPoints if customer actually chose to redeem
     if (this.pointsToRedeem > 0) {
-      payload.redeemedPoints = this.pointsToRedeem;
+      const transactionId = `TXN-${Date.now()}`;
+      this.gameball
+        .redeemPoints(user.customerId, this.pointsToRedeem, transactionId)
+        .subscribe({
+          next: (res) => {
+            console.log('Redeemed:', res.redeemEquivalentPoints, 'pts');
+            placeOrder();
+          },
+          error: (err) => {
+            this.loading = false;
+            console.error('Redemption error:', err);
+            this.showToast('Could not redeem points. Try again.', 'error');
+          },
+        });
+    } else {
+      placeOrder();
     }
-
-    this.gameball.placeOrder(payload).subscribe({
-      next: () => {
-        this.loading = false;
-        this.orderPlaced = true;
-        this.orderId = orderId;
-        this.pointsEarned = Math.floor(this.totalAfterRedemption);
-      },
-      error: (err) => {
-        this.loading = false;
-        console.error('Order error:', err);
-        this.showToast('Order failed. Check your API keys.', 'error');
-      },
-    });
   }
 
   // ─────────────────────────────────────────────
@@ -172,10 +188,6 @@ export class CheckoutComponent implements OnInit {
   onPointsSliderChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.pointsToRedeem = parseInt(input.value, 10);
-  }
-
-  clearRedemption(): void {
-    this.pointsToRedeem = 0;
   }
 
   private showToast(message: string, type: 'success' | 'error' | 'info'): void {

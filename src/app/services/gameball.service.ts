@@ -48,6 +48,43 @@ export class GameballService {
   }
 
   // ─────────────────────────────────────────────
+  // TASK 3 STEP 1: Hold points before redemption
+  // POST /api/v4.0/integrations/transaction/hold
+  // Temporarily freezes points to prevent double-spending
+  // Returns holdReference used in the order call
+  // Note: OTP field only needed if account has OTP enabled
+  // ─────────────────────────────────────────────
+  redeemPoints(
+    customerId: string,
+    points: number,
+    transactionId: string,
+  ): Observable<any> {
+    return this.http.post(
+      `${this.baseUrl}/integrations/transactions/redeem`,
+      {
+        customerId,
+        transactionId,
+        transactionTime: new Date().toISOString(),
+        points,
+        ignoreOTP: true,
+      },
+      { headers: this.getHeaders() },
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // TASK 3 STEP 1b: Release held points
+  // DELETE /api/v3.0/integrations/transaction/hold/{holdReference}
+  // Called when customer clears redemption or cancels checkout
+  // ─────────────────────────────────────────────
+  releasePoints(holdReference: string): Observable<any> {
+    return this.http.delete(
+      `https://api.gameball.co/api/v3.0/integrations/transaction/hold/${holdReference}`,
+      { headers: this.getHeaders() },
+    );
+  }
+
+  // ─────────────────────────────────────────────
   // TASK 3 STEP 2: Place an order (earn + redeem)
   // POST /integrations/orders
   // ─────────────────────────────────────────────
