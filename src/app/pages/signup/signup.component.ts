@@ -5,10 +5,11 @@ import { Router } from '@angular/router';
 import { GameballService } from '../../services/gameball.service';
 import { SessionService } from '../../services/session.service';
 
+// ─── Hardcode your test user here so you never have to re-sign up ───
 const TEST_USER = {
-  customerId: 'Ut_finaltest_gmail_com',
-  displayName: 'finalTest',
-  email: 'finaltest@gmail.com',
+  customerId: 'ut_y', // ← your existing Gameball customer ID
+  displayName: 'Alex Johnson',
+  email: 'alex@urbanthreads.com',
   profileCompleted: true,
 };
 
@@ -44,16 +45,31 @@ export class SignupComponent {
     this.router.navigate(['/profile']);
   }
 
+  // ─── Validation helpers ───
+  private isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  private isValidPassword(password: string): boolean {
+    return password.length >= 6;
+  }
+
   onSubmit(): void {
-    if (!this.form.displayName || !this.form.email || !this.form.password) {
-      this.showToast('Please fill in all fields.', 'error');
+    if (!this.form.displayName.trim()) {
+      this.showToast('Please enter your full name.', 'error');
+      return;
+    }
+    if (!this.isValidEmail(this.form.email)) {
+      this.showToast('Please enter a valid email address.', 'error');
+      return;
+    }
+    if (!this.isValidPassword(this.form.password)) {
+      this.showToast('Password must be at least 6 characters.', 'error');
       return;
     }
 
     this.loading = true;
 
-    // Generate a stable unique ID from email — in production this
-    // would be your internal database user ID
     const customerId = 'ut_' + this.form.email.replace(/[^a-zA-Z0-9]/g, '_');
 
     this.gameball
@@ -66,7 +82,6 @@ export class SignupComponent {
       })
       .subscribe({
         next: () => {
-          // Save to session (no DB needed)
           this.session.setUser({
             customerId,
             displayName: this.form.displayName,
@@ -79,8 +94,6 @@ export class SignupComponent {
             `Welcome to UrbanThreads, ${this.form.displayName}! 🎉`,
             'success',
           );
-
-          // Navigate to profile after short delay so user sees toast
           setTimeout(() => this.router.navigate(['/profile']), 1500);
         },
         error: (err) => {
